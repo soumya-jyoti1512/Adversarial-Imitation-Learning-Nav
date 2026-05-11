@@ -13,6 +13,11 @@ Instead of designing reward functions, designed a discriminator network observe 
 
 ---
 
+## Video Demonstration
+
+
+---
+
 # Table of Contents
 
 - [Architecture](#architecture)
@@ -280,6 +285,11 @@ The process repeats until convergence.
 ---
 
 # Results
+
+
+Figure: Training Results Four subplots showing (a) episodic reward volatility during adversarial training, (b)
+discriminator loss convergence, (c) navigation success rate climbing to 80-90%, and (d) concentrated state visitation along
+learned navigation paths
 
 ## Quantitative Results
 
