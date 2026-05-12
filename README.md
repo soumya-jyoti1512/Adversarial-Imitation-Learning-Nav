@@ -1,5 +1,7 @@
 # Autonomous Navigation via Adversarial Imitation Learning
 
+>An adversarial imitation learning framework for autonomous navigation that bypasses manual reward engineering by learning directly from expert demonstrations, utilizing a discriminator-guided policy augmented with a lightweight hybrid reward for goal-seeking and collision avoidance in cluttered environments.
+
 ---
 
 ## Overview
