@@ -15,8 +15,6 @@ Instead of designing reward functions, designed a discriminator network observe 
 
 ---
 
-## Video Demonstration
-
 
 ---
 
