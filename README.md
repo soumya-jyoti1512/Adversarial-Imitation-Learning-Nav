@@ -40,10 +40,10 @@ Instead of designing reward functions, designed a discriminator network observe 
 The system combines three interlocking components, a stochastic actor-critic policy (SAC), an adversarial discriminator (GAIL), and a hybrid reward signal into an end-to-end imitation learning pipeline.
 
 ```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                         FULL SYSTEM                                 │
-│                                                                     │
-│  Expert Buffer ──►┐                                                 │
+┌────────────────────────────────────────────────────────────────────┐
+│                         FULL SYSTEM                                │
+│                                                                    │
+│  Expert Buffer ──►┐                                                │
 │                   ├──► Discriminator ──► r_gail(s,a) ──►┐          │
 │  Replay Buffer ──►┘                                     │          │
 │                                                         ▼          │
@@ -55,7 +55,7 @@ The system combines three interlocking components, a stochastic actor-critic pol
 │                                          └──► Critics ◄─┘          │
 │                                                   │                │
 │                                                   └──► Actor Update│
-└─────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -77,16 +77,16 @@ The actor is a stochastic Gaussian MLP that maps the robot's state to a distribu
 Actions are sampled using the **reparameterization trick** and passed through a Tanh squashing function to produce bounded outputs in `(-1, 1)`.
 
 ```text
-State s ──► Shared MLP (ReLU) ──► μ(s) ─────────────────────────────►┐
-                              └──► log σ(s) ──► exp ──► σ(s)         │
-                                                         │           │
-                                               N(μ,σ²) ◄─┘           │
-                                                   │                 │
-                                            Reparameterization       │
-                                                   │                 │
-                                              Tanh Squash            │
-                                                   │                 │
-                                              Action â               │
+State s ──► Shared MLP (ReLU) ──► μ(s) 
+                              └──► log σ(s) ──► exp ──► σ(s)         
+                                                         │           
+                                               N(μ,σ²) ◄─┘           
+                                                   │                 
+                                            Reparameterization       
+                                                   │                 
+                                              Tanh Squash            
+                                                   │                 
+                                              Action â               
 ```
 
 The actor is trained under the maximum entropy reinforcement learning framework.
@@ -110,7 +110,7 @@ y = r_{total} + \gamma \cdot \left( \min Q_{target}(s', a') - \alpha \log \pi(a'
 ```text
 [s || a] ──►┬──► Critic Q1 ──► Q1(s,a) ──►┐
             └──► Critic Q2 ──► Q2(s,a) ──►┤
-                                            ▼
+                                          ▼
                                       min(Q1,Q2)
                                             │
                                       Bellman Target
