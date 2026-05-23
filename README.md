@@ -39,6 +39,8 @@ Instead of designing reward functions, designed a discriminator network observe 
 
 The system combines three interlocking components, a stochastic actor-critic policy (SAC), an adversarial discriminator (GAIL), and a hybrid reward signal into an end-to-end imitation learning pipeline.
 
+![Full System Architecture](flowcharts/diagram1_full_system.png)
+
 ```text
 ┌────────────────────────────────────────────────────────────────────┐
 │                         FULL SYSTEM                                │
