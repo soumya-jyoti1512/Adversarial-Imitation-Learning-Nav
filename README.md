@@ -41,25 +41,6 @@ The system combines three interlocking components, a stochastic actor-critic pol
 
 ![Full System Architecture](flowcharts/diagram1_full_system.png)
 
-```text
-┌────────────────────────────────────────────────────────────────────┐
-│                         FULL SYSTEM                                │
-│                                                                    │
-│  Expert Buffer ──►┐                                                │
-│                   ├──► Discriminator ──► r_gail(s,a) ──►┐          │
-│  Replay Buffer ──►┘                                     │          │
-│                                                         ▼          │
-│  Environment ──► State s ──► Actor ──► Action a    Hybrid Reward   │
-│                                          │         r_total(s,a,s') │
-│                                          ▼              │          │
-│                                   Environment ──► s'    │          │
-│                                          │              │          │
-│                                          └──► Critics ◄─┘          │
-│                                                   │                │
-│                                                   └──► Actor Update│
-└────────────────────────────────────────────────────────────────────┘
-```
-
 ---
 
 ## 1. Policy Network - Stochastic Actor
@@ -77,6 +58,8 @@ The actor is a stochastic Gaussian MLP that maps the robot's state to a distribu
 - log σ(s) - log standard deviation (clamped for numerical stability)
 
 Actions are sampled using the **reparameterization trick** and passed through a Tanh squashing function to produce bounded outputs in `(-1, 1)`.
+
+![Actor Network](flowcharts/diagram2_actor.png)
 
 ```text
 State s ──► Shared MLP (ReLU) ──► μ(s) 
@@ -109,6 +92,8 @@ Value estimation uses two independent Q-networks operating in parallel to mitiga
 y = r_{total} + \gamma \cdot \left( \min Q_{target}(s', a') - \alpha \log \pi(a'|s') \right)
 ```
 
+![Critic Networks](flowcharts/diagram3_critic.png)
+
 ```text
 [s || a] ──►┬──► Critic Q1 ──► Q1(s,a) ──►┐
             └──► Critic Q2 ──► Q2(s,a) ──►┤
@@ -135,6 +120,8 @@ L_D = - \mathbb{E}_{expert}[\log D(s,a)] - \mathbb{E}_{agent}[\log(1 - D(s,a))]
 ```math
 r_{gail}(s,a) = -\log(1 - D(s,a))
 ```
+
+![GAIL Discriminator](flowcharts/diagram4_gail.png)
 
 ```text
 Expert transitions ──►┐
@@ -179,6 +166,8 @@ C  = 1.0
 
 ### Reward Flowchart
 
+![Hybrid Reward](flowcharts/diagram5_hybrid_reward.png)
+
 ```text
 Agent transition (s,a,s') ──►┐
                              ├──► Discriminator ──► r_gail
@@ -216,6 +205,8 @@ Used exclusively for:
 ## 6. Training Loop - Six-Step Iteration
 
 Training alternates between environment interaction and optimization.
+
+![Training Loop](flowcharts/diagram6_training_loop.png)
 
 ```text
 ┌────────────── Training Iteration ───────────────────────────────┐
@@ -288,10 +279,26 @@ The process repeats until convergence.
 
 # Results
 
+## Overall Training Performance
+![Training Performance](graphs/training%20performance.png)
 
-Figure: Training Results Four subplots showing (a) episodic reward volatility during adversarial training, (b)
-discriminator loss convergence, (c) navigation success rate climbing to 80-90%, and (d) concentrated state visitation along
-learned navigation paths
+## Navigation Success Rate
+![Navigation Success](graphs/navigation%20success.png)
+
+## State Visitation Heatmap
+![Visitation Heatmap](graphs/visitation%20heatmap.png)
+
+## Reward Breakdown
+![Reward Breakdown](graphs/reward%20breakdown.png)
+
+## Actor and Critic Training
+![Actor and Critic Training](graphs/actor%20and%20critic%20training.png)
+
+## Discriminator Loss
+![Discriminator Loss](graphs/discriminator%20loss.png)
+
+## Expert vs Agent Discriminator Training
+![Expert vs Agent](graphs/discriminator%20training_expert%20vs%20agent.png)
 
 ## Quantitative Results
 
