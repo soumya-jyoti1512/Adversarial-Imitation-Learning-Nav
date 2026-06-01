@@ -1,10 +1,9 @@
-from __future__ import annotations
-import math
-from typing import Sequence
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+import math
+from typing import Sequence
 from src.networks.actor import GaussianActor
 from src.networks.critic import TwinCritic
 
@@ -15,32 +14,26 @@ class SACAgent:
         self,
         state_dim: int,
         action_dim: int,
-        action_scale: float | Tensor | Sequence[float] = 1.0,
+        action_scale: float | Tensor | Sequence[float] =1.0,
         action_bias: float | Tensor | Sequence[float] = 0.0,
         hidden_dims: Sequence[int] = (256, 256),
         gamma: float = 0.99,
-        tau: float = 5e-3,
-        lr_actor: float = 3e-4,
+        tau: float =5e-3,
+        lr_actor: float =3e-4,
         lr_critic: float = 3e-4,
         lr_alpha: float = 3e-4,
-        alpha_init: float = 0.2,
+        alpha_init: float =0.2,
         target_entropy: float | None = None,
         automatic_entropy: bool = True,
         device: str | torch.device = "cpu",
-    ) -> None:
-        if not (0.0 < gamma <= 1.0):
-            raise ValueError(f"gamma should be in between(0, 1], got {gamma}")
-        if not (0.0 < tau <= 1.0):
-            raise ValueError(f"tau must be in (0, 1], got {tau}")
-        if alpha_init <= 0.0:
-            raise ValueError(f"alpha_init must be > 0, got {alpha_init}")
+    ) 
 
         self.state_dim = int(state_dim)
         self.action_dim = int(action_dim)
-        self.gamma = float(gamma)
+        self.gamma= float(gamma)
         self.tau = float(tau)
         self.device = torch.device(device)
-        self.automatic_entropy = bool(automatic_entropy)
+        self.automatic_entropy =bool(automatic_entropy)
 
         #Networks
         self.actor = GaussianActor(
@@ -56,14 +49,14 @@ class SACAgent:
             hidden_dims=hidden_dims,
         ).to(self.device)
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr_actor)
-        self.critic_opt = torch.optim.Adam(
+        self.actor_opt= torch.optim.Adam(self.actor.parameters(), lr=lr_actor)
+        self.critic_opt= torch.optim.Adam(
             self.critic.online_parameters(), lr=lr_critic
         )
 
         if target_entropy is None:
-            target_entropy = -float(action_dim)
-        self.target_entropy = float(target_entropy)
+            target_entropy =-float(action_dim)
+        self.target_entropy =float(target_entropy)
 
         self.log_alpha = torch.tensor(
             math.log(alpha_init),
@@ -81,6 +74,8 @@ class SACAgent:
     def alpha(self) -> Tensor:
         return self.log_alpha.exp()
 
+
+    
     @torch.no_grad()
     def act(
         self,
@@ -93,6 +88,8 @@ class SACAgent:
         action = self.actor.act(state_t, deterministic=deterministic)
         return action.squeeze(0).cpu().numpy()
 
+
+    
     def update(
         self,
         batch: dict[str, Tensor],
@@ -120,7 +117,7 @@ class SACAgent:
 
         action_pi, logp_pi = self.actor(s)
         q_pi = self.critic.q_min(s, action_pi)
-        actor_loss = (self.alpha.detach() * logp_pi - q_pi).mean()
+        actor_loss =(self.alpha.detach() * logp_pi - q_pi).mean()
 
         self.actor_opt.zero_grad(set_to_none=True)
         actor_loss.backward()
@@ -135,7 +132,7 @@ class SACAgent:
             self.alpha_opt.step()                       
             alpha_loss_val = float(alpha_loss.detach())
         else:
-            alpha_loss_val = 0.0
+            alpha_loss_val=0.0
 
         self.critic.soft_update(self.tau)
 
@@ -162,7 +159,7 @@ class SACAgent:
             "critic_opt": self.critic_opt.state_dict(),
         }
         if self.alpha_opt is not None:
-            sd["alpha_opt"] = self.alpha_opt.state_dict()
+            sd["alpha_opt"] =self.alpha_opt.state_dict()
         return sd
 
     def load_state_dict(self, sd: dict) -> None:
