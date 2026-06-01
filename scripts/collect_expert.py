@@ -251,13 +251,12 @@ def record_episodes(
                   f"outcome={outcome:9s}  steps={ep_len:4d}  rejected")
 
     return (
-        np.asarray(states,      dtype=np.float32),
-        np.asarray(actions,     dtype=np.float32),
+        np.asarray(states, dtype=np.float32),
+        np.asarray(actions, dtype=np.float32),
         np.asarray(next_states, dtype=np.float32),
-        np.asarray(dones,       dtype=np.float32),
+        np.asarray(dones, dtype=np.float32),
         np.asarray(episode_starts, dtype=np.int64),
     )
-
 
 
 
