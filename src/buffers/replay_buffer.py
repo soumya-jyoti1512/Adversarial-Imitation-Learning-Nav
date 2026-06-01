@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import TypedDict
 
 class TransitionBatch:
-    state:      Tensor  
-    action:     Tensor 
+    state: Tensor  
+    action:Tensor 
     next_state: Tensor  
-    done:       Tensor  
+    done: Tensor  
 
 
 def _to_np(arr, expected_dim: int, name: str) -> np.ndarray:
