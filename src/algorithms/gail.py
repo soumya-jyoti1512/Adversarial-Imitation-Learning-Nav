@@ -67,14 +67,14 @@ class GAILTrainer:
         self._update_count += 1
 
         return {
-            "bce_loss":    float(bce_loss.detach()),
-            "r1_penalty":  float(r1.detach()),
-            "total_loss":  float(total_loss.detach()),
-            "loss_expert": float(diag["loss_expert"]),
-            "loss_agent":  float(diag["loss_agent"]),
-            "d_expert":    float(diag["d_expert"]),
-            "d_agent":     float(diag["d_agent"]),
-            "acc":         float(diag["acc"]),
+            "bce_loss": float(bce_loss.detach()),
+            "r1_penalty": float(r1.detach()),
+            "total_loss": float(total_loss.detach()),
+            "loss_expert":float(diag["loss_expert"]),
+            "loss_agent": float(diag["loss_agent"]),
+            "d_expert":float(diag["d_expert"]),
+            "d_agent":float(diag["d_agent"]),
+            "acc": float(diag["acc"]),
             "grad_norm":   grad_norm,
         }
 
