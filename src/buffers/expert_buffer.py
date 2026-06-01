@@ -10,10 +10,10 @@ EXPECTED_FORMAT_VERSION = "1.0"
 
 
 class ExpertBatch(TypedDict):
-    state:      Tensor  
-    action:     Tensor  
+    state: Tensor  
+    action: Tensor  
     next_state: Tensor  
-    done:       Tensor  
+    done: Tensor  
 
 
 def _decode_attr(value):
@@ -39,10 +39,10 @@ class ExpertBuffer:
                 version = _decode_attr(f.attrs.get("format_version", ""))
                 
 
-            self._states      = f["states"     ][...].astype(np.float32, copy=False)
-            self._actions     = f["actions"    ][...].astype(np.float32, copy=False)
-            self._next_states = f["next_states"][...].astype(np.float32, copy=False)
-            dones = f["dones"][...].astype(np.float32, copy=False)
+            self._states= f["states"][...].astype(np.float32, copy=False)
+            self._actions= f["actions"][...].astype(np.float32, copy=False)
+            self._next_states= f["next_states"][...].astype(np.float32, copy=False)
+            dones= f["dones"][...].astype(np.float32, copy=False)
             if dones.ndim == 1:
                 dones = dones[:, None]
             self._dones = dones
@@ -65,10 +65,10 @@ class ExpertBuffer:
     def sample(self, batch_size: int) -> ExpertBatch:
         idx = self._rng.integers(0, len(self), size=batch_size)
         return ExpertBatch(
-            state=      torch.from_numpy(self._states[idx]     ).to(self.device),
-            action=     torch.from_numpy(self._actions[idx]    ).to(self.device),
+            state= torch.from_numpy(self._states[idx]).to(self.device),
+            action=torch.from_numpy(self._actions[idx]).to(self.device),
             next_state= torch.from_numpy(self._next_states[idx]).to(self.device),
-            done=       torch.from_numpy(self._dones[idx]      ).to(self.device),
+            done=torch.from_numpy(self._dones[idx]).to(self.device),
         )
 
     def __len__(self) -> int:
@@ -95,10 +95,10 @@ class ExpertBuffer:
         dones: np.ndarray,
         episode_starts: np.ndarray | None = None,
     ) -> None:
-        states      = np.asarray(states,      dtype=np.float32)
-        actions     = np.asarray(actions,     dtype=np.float32)
-        next_states = np.asarray(next_states, dtype=np.float32)
-        dones       = np.asarray(dones,       dtype=np.float32).reshape(-1, 1)
+        states= np.asarray(states, dtype=np.float32)
+        actions= np.asarray(actions, dtype=np.float32)
+        next_states= np.asarray(next_states, dtype=np.float32)
+        dones= np.asarray(dones, dtype=np.float32).reshape(-1, 1)
 
 
         N, state_dim = states.shape
@@ -112,13 +112,13 @@ class ExpertBuffer:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with h5py.File(path, "w") as f:
-            f.create_dataset("states",      data=states,      compression="gzip")
-            f.create_dataset("actions",     data=actions,     compression="gzip")
+            f.create_dataset("states", data=states, compression="gzip")
+            f.create_dataset("actions", data=actions, compression="gzip")
             f.create_dataset("next_states", data=next_states, compression="gzip")
-            f.create_dataset("dones",       data=dones,       compression="gzip")
+            f.create_dataset("dones", data=dones, compression="gzip")
             if episode_starts is not None:
                 f.create_dataset("episode_starts", data=episode_starts)
-            f.attrs["state_dim"]      = int(state_dim)
-            f.attrs["action_dim"]     = int(action_dim)
-            f.attrs["num_episodes"]   = num_episodes
-            f.attrs["format_version"] = EXPECTED_FORMAT_VERSION
+            f.attrs["state_dim"]= int(state_dim)
+            f.attrs["action_dim"]= int(action_dim)
+            f.attrs["num_episodes"]= num_episodes
+            f.attrs["format_version"]= EXPECTED_FORMAT_VERSION
