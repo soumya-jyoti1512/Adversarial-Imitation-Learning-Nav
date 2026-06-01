@@ -1,66 +1,46 @@
-from __future__ import annotations
-
 import math
 import threading
 import time
 from typing import Any, Optional
-
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import (QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy,)
+from rclpy.executors import SingleThreadedExecutor
+from geometry_msgs.msg import Twist
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+from ros_gz_interfaces.srv import SetEntityPose
+from ros_gz_interfaces.msg import Entity
 
-try:
-    import rclpy
-    from rclpy.node import Node
-    from rclpy.qos import (
-        QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy,
-    )
-    from rclpy.executors import SingleThreadedExecutor
-
-    from geometry_msgs.msg import Twist
-    from sensor_msgs.msg import LaserScan
-    from nav_msgs.msg import Odometry
-    from ros_gz_interfaces.srv import SetEntityPose
-    from ros_gz_interfaces.msg import Entity
-
-    HAS_ROS = True
-except ImportError:
-    HAS_ROS = False
-
-
-# Helpers
 def _quat_to_yaw(qx: float, qy: float, qz: float, qw: float) -> float:
-    """Convert a quaternion to yaw (rotation about z)."""
-    siny_cosp = 2.0 * (qw * qz + qx * qy)
-    cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+    siny_cosp= 2.0 * (qw * qz + qx * qy)
+    cosy_cosp= 1.0 - 2.0 * (qy * qy + qz * qz)
     return float(math.atan2(siny_cosp, cosy_cosp))
 
 
 def _yaw_to_quat(yaw: float) -> tuple[float, float, float, float]:
-    """Convert a yaw to a quaternion (qx, qy, qz, qw)."""
     return (0.0, 0.0, float(math.sin(yaw / 2.0)), float(math.cos(yaw / 2.0)))
 
 
-# Env
 class GazeboEnv(gym.Env):
 
     metadata = {"render_modes": []}
 
     def __init__(
         self,
-        # Geometry / sensor
         env_size: float = 5.4,
         lidar_num_beams: int = 20,
         lidar_max_range: float = 3.0,
         goal_threshold: float = 0.3,
         collision_terminal_distance: float = 0.15,
-        #Dynamics
         v_max: float = 1.0,
         omega_max: float = 1.5,
         dt: float = 0.1,
         max_steps: int = 300,
         min_spawn_goal_dist: float = 2.0,
-       #writer
         node_name: str = "gail_sac_env",
         cmd_vel_topic: str = "/cmd_vel",
         scan_topic: str = "/scan",
@@ -71,16 +51,7 @@ class GazeboEnv(gym.Env):
         seed: Optional[int] = None,
     ) -> None:
         super().__init__()
-        if not HAS_ROS:
-            raise ImportError(
-                "ROS 2 packages are not importable. Source your ROS 2 Jazzy "
-                "setup first:\n"
-                "    source /opt/ros/jazzy/setup.bash\n"
-                "If you're developing without ROS installed, use ToyNavEnv "
-                "instead both share the same gym API."
-            )
 
-        #Store config
         self.env_size = float(env_size)
         self.half = self.env_size / 2.0
         self.lidar_num_beams = int(lidar_num_beams)
@@ -96,7 +67,6 @@ class GazeboEnv(gym.Env):
         self.robot_name = str(robot_name)
         self.message_wait_timeout = float(message_wait_timeout)
 
-        #Gym spaces
         action_low = np.array([-v_max, -v_max, -omega_max], dtype=np.float32)
         self.action_space = spaces.Box(
             low=action_low, high=-action_low, dtype=np.float32
@@ -113,19 +83,17 @@ class GazeboEnv(gym.Env):
             low=obs_low, high=obs_high, dtype=np.float32
         )
 
-        # Per-episode state
         self._rng = np.random.default_rng(seed)
         self.goal = np.zeros(2, dtype=np.float32)
         self.step_count = 0
 
-        # ROS infrastructure
         self._owns_rclpy = not rclpy.ok()
         if self._owns_rclpy:
             rclpy.init()
 
         self._node = Node(node_name)
-        self._scan_lock = threading.Lock()
-        self._odom_lock = threading.Lock()
+        self._scan_lock= threading.Lock()
+        self._odom_lock= threading.Lock()
         self._latest_scan: Optional[LaserScan] = None
         self._latest_odom: Optional[Odometry] = None
         self._beam_idx: Optional[np.ndarray] = None
@@ -142,13 +110,13 @@ class GazeboEnv(gym.Env):
             depth=10,
         )
 
-        self._cmd_pub = self._node.create_publisher(
+        self._cmd_pub= self._node.create_publisher(
             Twist, cmd_vel_topic, reliable_qos
         )
-        self._scan_sub = self._node.create_subscription(
+        self._scan_sub= self._node.create_subscription(
             LaserScan, scan_topic, self._on_scan, sensor_qos
         )
-        self._odom_sub = self._node.create_subscription(
+        self._odom_sub= self._node.create_subscription(
             Odometry, odom_topic, self._on_odom, sensor_qos
         )
         self._set_pose_client = self._node.create_client(
@@ -163,7 +131,6 @@ class GazeboEnv(gym.Env):
         self._spin_thread.start()
         self._closed = False
 
-    # ROS callbacks
     def _on_scan(self, msg: "LaserScan") -> None:
         with self._scan_lock:
             self._latest_scan = msg
@@ -183,7 +150,6 @@ class GazeboEnv(gym.Env):
         idx = np.round((target - msg.angle_min) / msg.angle_increment).astype(int)
         return np.clip(idx, 0, n_raw - 1)
 
-    # Reset
     def reset(
         self,
         *,
@@ -193,7 +159,6 @@ class GazeboEnv(gym.Env):
         if seed is not None:
             self._rng = np.random.default_rng(seed)
 
-        # spawn pose and goal in env bounds
         spawn_xy = self._sample_bounded_xy()
         spawn_yaw = float(self._rng.uniform(-math.pi, math.pi))
         for _ in range(50):
@@ -202,7 +167,6 @@ class GazeboEnv(gym.Env):
                 break
         self.goal = goal_xy.astype(np.float32)
 
-        # Teleport robot via SetEntityPose
         self._teleport_robot(spawn_xy, spawn_yaw)
 
         self.step_count = 0
@@ -219,12 +183,7 @@ class GazeboEnv(gym.Env):
         )
 
     def _teleport_robot(self, xy: np.ndarray, yaw: float) -> None:
-        if not self._set_pose_client.wait_for_service(timeout_sec=2.0):
-            raise RuntimeError(
-                f"set_pose service /world/{self.world_name}/set_pose not "
-                f"available. Is gz-sim running with the right world name? "
-                f"Check `ros2 service list | grep set_pose`."
-            )
+       
         req = SetEntityPose.Request()
         req.entity = Entity(name=self.robot_name, type=Entity.MODEL)
         req.pose.position.x = float(xy[0])
@@ -238,27 +197,14 @@ class GazeboEnv(gym.Env):
 
         future = self._set_pose_client.call_async(req)
         t0 = time.time()
-        while not future.done():
-            if time.time() - t0 > 2.0:
-                raise RuntimeError("set_pose service call timed out")
-            time.sleep(0.005)
-        if not future.result().success:
-            raise RuntimeError(
-                f"set_pose service returned success=False. Verify the "
-                f"robot model name ('{self.robot_name}') is correct."
-            )
 
   
-    # Step
     def step(
         self, action: np.ndarray
     ) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         a = np.asarray(action, dtype=np.float32).reshape(-1)
-        if a.shape != (3,):
-            raise ValueError(f"action shape {a.shape}, expected (3,)")
         a = np.clip(a, self.action_space.low, self.action_space.high)
 
-        # ---- Publish cmd_vel ---------------------------------------------
         cmd = Twist()
         cmd.linear.x = float(a[0])
         cmd.linear.y = float(a[1])
@@ -285,18 +231,12 @@ class GazeboEnv(gym.Env):
             collided=collided,
         )
 
-    # Observation construction
     def _build_obs(self) -> np.ndarray:
         with self._scan_lock:
             scan = self._latest_scan
             beam_idx = self._beam_idx
         with self._odom_lock:
             odom = self._latest_odom
-        if scan is None or beam_idx is None or odom is None:
-            raise RuntimeError(
-                "Building observation before /scan or /odom has arrived. "
-                "Did reset() complete successfully?"
-            )
 
         ranges = np.asarray(scan.ranges, dtype=np.float32)[beam_idx]
         ranges = np.where(np.isfinite(ranges), ranges, self.lidar_max_range)
@@ -319,7 +259,6 @@ class GazeboEnv(gym.Env):
         ]).astype(np.float32)
 
     def _wait_for_fresh_messages(self, reference_ns: int) -> None:
-        """Block until /scan AND /odom timestamps are newer than reference."""
         deadline = time.time() + self.message_wait_timeout
         while time.time() < deadline:
             with self._scan_lock:
@@ -332,12 +271,7 @@ class GazeboEnv(gym.Env):
                 if scan_ns >= reference_ns and odom_ns >= reference_ns:
                     return
             time.sleep(0.01)
-        raise RuntimeError(
-            f"Timed out waiting for fresh /scan and /odom after reset. "
-            f"Check that the bridge is alive: `ros2 topic hz /scan` and "
-            f"`ros2 topic hz /odom`."
-        )
-
+            
     def _info(self, **extras) -> dict[str, Any]:
         return {
             "goal": self.goal.copy(),
@@ -345,7 +279,7 @@ class GazeboEnv(gym.Env):
             **extras,
         }
 
-    # Teardown
+    
     def close(self) -> None:
         if self._closed:
             return
