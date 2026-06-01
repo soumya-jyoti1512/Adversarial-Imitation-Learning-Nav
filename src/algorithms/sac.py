@@ -140,14 +140,14 @@ class SACAgent:
             entropy_est = -logp_pi.mean().item() 
         return {
             "critic_loss": float(critic_loss.detach()),
-            "actor_loss":  float(actor_loss.detach()),
-            "alpha_loss":  alpha_loss_val,
-            "alpha":       float(self.alpha.detach()),
-            "q1_mean":     float(q1.mean().detach()),
-            "q2_mean":     float(q2.mean().detach()),
-            "y_mean":      float(y.mean().detach()),
-            "entropy":     entropy_est,
-            "r_mean":      float(r_total.mean().detach()),
+            "actor_loss": float(actor_loss.detach()),
+            "alpha_loss": alpha_loss_val,
+            "alpha": float(self.alpha.detach()),
+            "q1_mean": float(q1.mean().detach()),
+            "q2_mean":float(q2.mean().detach()),
+            "y_mean": float(y.mean().detach()),
+            "entropy": entropy_est,
+            "r_mean": float(r_total.mean().detach()),
         }
 
     def state_dict(self) -> dict:
